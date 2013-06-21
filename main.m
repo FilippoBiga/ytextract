@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
         stream_map = [[[parsedJSON objectForKey:@"content"] objectForKey:@"video"] objectForKey:@"fmt_stream_map"];
         
         // Print the available video quality options. Shift the indexes by one
-        // (apperantly normal human beings start counting from 1 and not 0, weird!)
+        // (apparently normal human beings start counting from 1 and not 0, weird!)
         printf("Available videos (enter one of the digits):\n");
         for (NSUInteger i = 0; i < [stream_map count]; i++)
         {
