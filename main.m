@@ -123,8 +123,31 @@ int main(int argc, char *argv[])
         
         
         stream_map = [[[parsedJSON objectForKey:@"content"] objectForKey:@"video"] objectForKey:@"fmt_stream_map"];
-        videoURLString = [[stream_map objectAtIndex:0] objectForKey:@"url"];
         
+        // Print the available video quality options. Shift the indexes by one
+        // (apperantly normal human beings start counting from 1 and not 0, weird!)
+        printf("Available videos (enter one of the digits):\n");
+        for (NSUInteger i = 0; i < [stream_map count]; i++)
+        {
+            NSDictionary *videoDict = [stream_map objectAtIndex:i];
+            printf("%lx) %s\n", (unsigned long)i + 1, [[videoDict objectForKey:@"quality"] UTF8String]);
+        }
+
+        // Get the chosen index from user input, unshift it by one
+        int chosenIndex;
+        do
+        {
+            // Convert from ASCII (/ EBCDIC) input to an integer, unshift by 1 because the indexes were printed + 1
+            chosenIndex = getchar() - '1';
+            fpurge(stdin);
+
+            if (chosenIndex >= [stream_map count])
+                printf("Video index does not exist, try again.\n");
+        } while (chosenIndex >= [stream_map count]);
+
+        // Print the video url at the chosen index
+        videoURLString = [[stream_map objectAtIndex:chosenIndex] objectForKey:@"url"];
+
         printf("%s\n", [videoURLString UTF8String]);
     }
     
