@@ -28,11 +28,16 @@ static NSString * const kJSONEndMark = @"\");";
 
 NSString *unescapeUnicodeString(NSString *string);
 
+static void inline printUsage(const char *programName)
+{
+    printf("Usage: %s youtube-url [-q]\n", programName);
+}
+
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
+    if (argc < 2)
     {
-        printf("Usage: %s youtube-url\n", argv[0]);
+        printUsage(argv[0]);
         return 1;
     }
     
@@ -52,10 +57,30 @@ int main(int argc, char *argv[])
         NSArray *stream_map = nil;
         
         NSString *videoURLString = nil;
-        
-        
-        youtubeURL = [NSURL URLWithString:[NSString stringWithUTF8String:argv[1]]];
-        
+       
+        BOOL shouldShowMenu = NO;
+
+        for (int i = 1; i < argc; i++)
+        {
+            char *arg = argv[i];
+
+            if (!strcmp(arg, "-q"))
+            {
+                shouldShowMenu = YES;
+            }
+            else
+            {
+                youtubeURL = [NSURL URLWithString:[NSString stringWithUTF8String:arg]];
+            }
+        }
+
+        if (!youtubeURL)
+        {
+            // Only -q was provided.
+            printUsage(argv[0]);
+            return 1;
+        }
+
         request = [NSMutableURLRequest requestWithURL:youtubeURL];
         [request setValue:kUserAgent forHTTPHeaderField:@"User-Agent"];
         
@@ -123,8 +148,35 @@ int main(int argc, char *argv[])
         
         
         stream_map = [[[parsedJSON objectForKey:@"content"] objectForKey:@"video"] objectForKey:@"fmt_stream_map"];
-        videoURLString = [[stream_map objectAtIndex:0] objectForKey:@"url"];
         
+        int chosenIndex = 0;
+
+        if (shouldShowMenu)
+        {
+            // Print the available video quality options. Shift the indexes by one
+            // (apparently normal human beings start counting from 1 and not 0, weird!)
+            printf("Available videos (enter one of the digits):\n");
+            for (NSUInteger i = 0; i < [stream_map count]; i++)
+            {
+                NSDictionary *videoDict = [stream_map objectAtIndex:i];
+                printf("%lx) %s\n", (unsigned long)i + 1, [[videoDict objectForKey:@"quality"] UTF8String]);
+            }
+
+            // Get the chosen index from user input, unshift it by one
+            do
+            {
+                // Convert from ASCII (/ EBCDIC) input to an integer, unshift by 1 because the indexes were printed + 1
+                chosenIndex = getchar() - '1';
+                fpurge(stdin);
+
+                if (chosenIndex >= [stream_map count])
+                    printf("Video index does not exist, try again.\n");
+            } while (chosenIndex >= [stream_map count]);
+         }
+
+        // Print the video url at the chosen index
+        videoURLString = [[stream_map objectAtIndex:chosenIndex] objectForKey:@"url"];
+
         printf("%s\n", [videoURLString UTF8String]);
     }
     
